@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="{{ (locale|lower)[:2] }}">
+  <head>
+    <meta charset="{{ config['server']['encoding'] }}">
+    <title>{% block title %}{{ config['metadata']['identification']['title'] }} -{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="language" content="{{ config['server']['languages'] }}">
+    <meta name="description" content="{{ config['metadata']['identification']['title'] }}">
+    <meta name="keywords" content="{{ config['metadata']['identification']['keywords']|join(',') }}">
+    <link rel="shortcut icon" href="{{ config['server']['url'] }}/static/img/favicon.ico" type="image/x-icon">
+
+    <!-- GCWeb theme -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/css/theme.min.css">
+
+    <link rel="stylesheet" href="{{ config['server']['url'] }}/static/css/default.css">
+    <!--[if lt IE 9]>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+    <![endif]-->
+    {% for link in data['links'] %}
+      {% if (link['rel']=="self" and link['type']=="text/html") %}
+      <link rel="canonical" href="{{ link['href'].split('?')[0] }}?lang={{ (locale|lower)[:2] }}" />
+      {% elif (link['rel']!="canonical") %}
+      <link rel="{{ link['rel'] }}" type="{{ link['type'] }}" title="{{ link['title'] }}" href="{{ link['href'] }}?lang={{ (locale|lower)[:2] }}"/>
+      {% endif %}
+    {% endfor %}
+    {% block extrahead %}
+    {% endblock %}
+  </head>
+  <body vocab="http://schema.org/" typeof="WebPage">
+    <nav>
+        <ul id="wb-tphp">
+            <li class="wb-slc">
+                <a class="wb-sl" href="#wb-cont">{% trans %}Skip to main content{% endtrans %}</a>
+            </li>
+            <li class="wb-slc visible-sm visible-md visible-lg">
+                <a class="wb-sl" href="#wb-info">{% trans %}Skip to "About government"{% endtrans %}</a>
+            </li>
+        </ul>
+    </nav>
+    <header>
+      <div id="wb-bnr" class="container">
+        <div class="row">
+          <!-- language selection (JSON) -->
+          <section id="wb-lng" class="col-xs-3 col-sm-12 pull-right text-right">
+            <h2 class="wb-inv">{% trans %}Language selection{% endtrans %}</h2>
+            <ul class="list-inline mrgn-bttm-0">
+              {% set links_found = namespace(json=0, jsonld=0) %}
+
+              {% for link in data['links'] %}
+              {% if link['rel'] == 'alternate' and link['type'] and link['type'] in ['application/json', 'application/geo+json'] %}
+              {% set links_found.json = 1 %}
+              <li>
+                <a id="json-format-url" href="{{ link['href'] }}" class="btn btn-xs btn-default">
+                  <span class="hidden-xs">JSON</span>
+                  <abbr title="JSON" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON</abbr>
+                </a>
+              </li>
+              {% elif link['rel'] == 'alternate' and link['type'] and link['type'] == 'application/ld+json' %}
+              {% set links_found.jsonld = 1 %}
+              <li>
+                <a id="jsonld-format-url" href="{{ link['href'] }}" class="btn btn-xs btn-default">
+                  <span class="hidden-xs">JSON-LD</span>
+                  <abbr title="JSON-LD" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON-LD</abbr>
+                </a>
+              </li>
+              {% endif %}
+              {% endfor %}
+
+              {% if links_found.json == 0 %}
+              <li>
+                <a id="json-format-url" href="?f=json" class="btn btn-xs btn-default">
+                  <span class="hidden-xs">JSON</span>
+                  <abbr title="JSON" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON</abbr>
+                </a>
+              </li>
+              {% endif %}
+              {% if links_found.jsonld == 0 %}
+              <li>
+                <a id="jsonld-format-url" href="?f=jsonld" class="btn btn-xs btn-default">
+                  <span class="hidden-xs">JSON-LD</span>
+                  <abbr title="JSON-LD" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON-LD</abbr>
+                </a>
+              </li>
+              {% endif %}
+              {% block extralang %}
+              {% endblock %}
+
+              <!-- language toggle -->
+              {% for langcode in config['server']['languages'] %}
+              {% if (locale|upper)[:2] != (langcode|upper)[:2] %}
+              <li>
+                <a class="lang-toggle" href="?lang={{ (langcode|lower)[:2] }}" hreflang="{{ langcode }}">{{ (langcode|upper)[:2] }}</a>
+              </li>
+              {% endif %}
+              {% endfor %}
+            </ul>
+          </section>
+
+          <!-- Brand -->
+          <div class="brand col-xs-9 col-sm-5 col-md-4" property="publisher" typeof="GovernmentOrganization">
+            <a href="https://www.canada.ca/en.html" property="url">
+              <img src="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/assets/sig-blk-en.svg" alt="{% trans %}Government of Canada{% endtrans %}" property="logo" /><span class="wb-inv"> / <span lang="fr">Gouvernement du Canada</span></span>
+            </a>
+            <meta property="name" content="{% trans %}Government of Canada{% endtrans %}">
+            <meta property="areaServed" typeof="Country" content="Canada" />
+            <link property="logo" href="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/assets/wmms-blk.svg" />
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <nav id="wb-bc" property="breadcrumb">
+        <h2>{% trans %}You are here:{% endtrans %}</h2>
+        <div class="container">
+          <ol class="breadcrumb">
+            {% block crumbs %}
+            <li><a href="{{ config['server']['url'] }}?lang={{ (locale|lower)[:2] }}">{% trans %}Home{% endtrans %}</a></li>
+            {% endblock %}
+          </ol>
+        </div>
+      </nav>
+    </header>
+    <main property="mainContentOfPage" class="container" typeof="WebPageElement">
+      {% block body %}
+      {% endblock %}
+      <div class="pagedetails">
+        <dl id="wb-dtmd">
+          <dt>{% trans %}Powered by{% endtrans %} <a title="pygeoapi" href="https://pygeoapi.io"><img src="{{ config['server']['url'] }}/static/img/pygeoapi.png" alt="{% trans %}pygeoapi logo{% endtrans %}" style="height:24px;vertical-align: middle;"/></a></dt>
+          <dd>{{ version }} | </dd>
+          <dt><a href="https://github.com/Canadian-Geospatial-Platform/cgp_pygeoapi" target="_blank">cgp-pygeoapi</a></dt>
+          <dd>{% trans %}Canadian Geospatial Platform (CGP){% endtrans %}</dd>
+        </dl>
+      </div>
+    </main>
+    <footer id="wb-info">
+      <h2 class="wb-inv">{% trans %}About this site{% endtrans %}</h2>
+      <div class="gc-main-footer">
+        <div class="container">
+          <nav>
+            <h3>{% trans %}Government of Canada{% endtrans %}</h3>
+            <ul class="list-col-xs-1 list-col-sm-2 list-col-md-3"><li><a href="{% trans %}https://www.canada.ca/en/contact.html{% endtrans %}">{% trans %}All contacts{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/government/dept.html{% endtrans %}">{% trans %}Departments and agencies{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/government/system.html{% endtrans %}">{% trans %}About government{% endtrans %}</a></li></ul>
+            <h4><span class="wb-inv">{% trans %}Themes and topics{% endtrans %}</span></h4>
+            <ul class="list-unstyled colcount-sm-2 colcount-md-3"><li><a href="{% trans %}https://www.canada.ca/en/services/jobs.html{% endtrans %}">{% trans %}goc_Jobs{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/immigration-citizenship.html{% endtrans %}">{% trans %}Immigration and citizenship{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://travel.gc.ca/{% endtrans %}">{% trans %}Travel and tourism{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/business.html{% endtrans %}">{% trans %}Business{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/benefits.html{% endtrans %}">{% trans %}Benefits{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/health.html{% endtrans %}">{% trans %}Health{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/taxes.html{% endtrans %}">{% trans %}Taxes{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/environment.html{% endtrans %}">{% trans %}Environment and natural resources{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/defence.html{% endtrans %}">{% trans %}National security and defence{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/culture.html{% endtrans %}">{% trans %}Culture, history and sport{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/policing.html{% endtrans %}">{% trans %}Policing, justice and emergencies{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/transport.html{% endtrans %}">{% trans %}Transport and infrastructure{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://international.gc.ca/world-monde/index.aspx?lang=eng{% endtrans %}">{% trans %}Canada and the world{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/finance.html{% endtrans %}">{% trans %}Money and finance{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/science.html{% endtrans %}">{% trans %}Science and innovation{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/indigenous-peoples.html{% endtrans %}">{% trans %}Indigenous peoples{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/veterans-military.html{% endtrans %}">{% trans %}Veterans and military{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/services/youth.html{% endtrans %}">{% trans %}Youth{% endtrans %}</a></li></ul>
+          </nav>
+        </div>
+      </div>
+    
+      <div class="gc-sub-footer">
+        <div class="container d-flex align-items-center">
+          <nav>
+            <h3 class="wb-inv">{% trans %}Government of Canada Corporate{% endtrans %}</h3>
+            <ul>
+              <li><a href="{% trans %}https://www.canada.ca/en/social.html{% endtrans %}">{% trans %}Social media{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/mobile.html{% endtrans %}">{% trans %}Mobile applications{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/government/about.html{% endtrans %}">{% trans %}About Canada.ca{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/transparency/terms.html{% endtrans %}">{% trans %}Terms and conditions{% endtrans %}</a></li>
+              <li><a href="{% trans %}https://www.canada.ca/en/transparency/privacy.html{% endtrans %}">{% trans %}Privacy{% endtrans %}</a></li></ul>
+          </nav>
+          <div class="wtrmrk align-self-end">
+            <img src="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/assets/wmms-blk.svg" alt="{% trans %}Symbol of the Government of Canada{% endtrans %}" />
+          </div>
+        </div>
+      </div>
+    </footer>
+    {% block extrafoot %}
+    {% endblock %}
+    <script>
+      // Requests and embeds JSON-LD representation of current page
+      var xhr = new XMLHttpRequest();
+      var lang = "{{ (locale|lower)[:2] }}" ? "{{ (locale|lower)[:2] }}" : "{{ config['server']['languages'][0][:2] }}"
+      var path = window.location.protocol + "//" + window.location.host + window.location.pathname + "?f=jsonld&lang=" + lang;
+      if (window.location.pathname.match(/\/items(#)*/gi)) { // reduce load on /items page
+        path += '&limit=10';
+      }
+      xhr.open('GET', path);
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          var head = document.getElementsByTagName('head')[0];
+          var jsonld_datablock = document.createElement('script');
+          jsonld_datablock.type = "application/ld+json";
+          // remove full context path, because search engines don't expect it here, pyld requires it.
+          jsonld_datablock.textContent = xhr.responseText.replace('docs/jsonldcontext.jsonld','');
+          head.appendChild(jsonld_datablock);
+        }
+      };
+      xhr.send();
+    </script>
+  </body>
+</html>

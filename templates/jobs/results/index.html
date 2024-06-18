@@ -1,0 +1,20 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {% trans %}Job results{% endtrans %} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../../jobs?lang={{ (locale|lower)[:2] }}">{% trans %}Jobs{% endtrans %}</a></li>
+<li><a href="../{{ data.job.id }}?lang={{ (locale|lower)[:2] }}">{{ data.job.id }}</a></li>
+<li><a href="./results?lang={{ (locale|lower)[:2] }}">{% trans %}results{% endtrans %}</a></li>
+{% endblock %}
+{% block body %}
+  <section id="jobs">
+    <h2>{% trans id=data.job.id %}Results of job {{id}}{% endtrans %}</h2>
+    <pre id="results"></pre>
+  </section>
+  <script>
+    document.getElementById('results').innerHTML = JSON.stringify({{ data.result }}, undefined, 2);
+  </script>
+{% endblock %}

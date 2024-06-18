@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="{{ (locale|lower)[:2] }}">
+  <head>
+    <meta charset="{{ config['server']['encoding'] }}">
+    <title>{% block title %}{{ config['metadata']['identification']['title'] }} -{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="language" content="{{ config['server']['languages'] }}">
+    <meta name="description" content="{{ config['metadata']['identification']['title'] }}">
+    <meta name="keywords" content="{{ config['metadata']['identification']['keywords']|join(',') }}">
+    <link rel="shortcut icon" href="https://geo.ca/wp-content/uploads/2022/11/icon-GEO-300x300-1-150x150.png" type="image/x-icon">
+
+    <!-- GCWeb theme -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/css/theme.min.css">
+
+    <link rel="stylesheet" href="{{ config['server']['url'] }}/static/css/default.css">
+    <link rel="stylesheet" href="{{ config['server']['url'] }}/static/css/geoca.css">
+
+    {% for link in data['links'] %}
+      {% if (link['rel']=="self" and link['type']=="text/html") %}
+      <link rel="canonical" href="{{ link['href'].split('?')[0] }}?lang={{ (locale|lower)[:2] }}" />
+      {% elif (link['rel']!="canonical") %}
+      <link rel="{{ link['rel'] }}" type="{{ link['type'] }}" title="{{ link['title'] }}" href="{{ link['href'] }}?lang={{ (locale|lower)[:2] }}"/>
+      {% endif %}
+    {% endfor %}
+    {% block extrahead %}
+    {% endblock %}
+  </head>
+  <body vocab="http://schema.org/" typeof="WebPage">
+    <nav>
+        <ul id="wb-tphp">
+            <li class="wb-slc">
+                <a class="wb-sl" href="#wb-cont">{% trans %}Skip to main content{% endtrans %}</a>
+            </li>
+            <li class="wb-slc visible-sm visible-md visible-lg">
+                <a class="wb-sl" href="#wb-info">{% trans %}Skip to "About government"{% endtrans %}</a>
+            </li>
+        </ul>
+    </nav>
+    <header id="header">
+      <hr class="header-hr-top">
+      <div id="wb-bnr" class="container">
+        <div class="row">
+          <!-- Brand -->
+          <div class="brand col-xs-4" property="publisher" typeof="GovernmentOrganization">
+            <a href="{{ config['server']['url'] }}?lang={{ (locale|lower)[:2] }}" property="url">
+              <img src="https://geo.ca/wp-content/uploads/2023/02/geo-ca-logo.svg" alt="{% trans %}GEO.CA logo, blue and green globe{% endtrans %}" property="logo" />
+            </a>
+            <meta property="name" content="{% trans %}Geo.ca{% endtrans %}">
+            <meta property="areaServed" typeof="Country" content="Canada" />
+            <link property="logo" href="https://geo.ca/wp-content/uploads/2023/02/geo-ca-logo.svg" />
+          </div>
+
+          <!-- language selection (JSON) -->
+          <section id="wb-lng" class="col-xs-8 pull-right text-right">
+            <h2 class="wb-inv">{% trans %}Language selection{% endtrans %}</h2>
+            <div class="base-header-list-container">
+              <ul class="base-header-list mrgn-bttm-0">
+                {% set links_found = namespace(json=0, jsonld=0) %}
+
+                {% for link in data['links'] %}
+                {% if link['rel'] == 'alternate' and link['type'] and link['type'] in ['application/json', 'application/geo+json'] %}
+                {% set links_found.json = 1 %}
+                <li>
+                  <a id="json-format-url" href="{{ link['href'] }}" class="btn btn-xs btn-default">
+                    <span class="hidden-xs">JSON</span>
+                    <abbr title="JSON" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON</abbr>
+                  </a>
+                </li>
+                {% elif link['rel'] == 'alternate' and link['type'] and link['type'] == 'application/ld+json' %}
+                {% set links_found.jsonld = 1 %}
+                <li>
+                  <a id="jsonld-format-url" href="{{ link['href'] }}" class="btn btn-xs btn-default">
+                    <span class="hidden-xs">JSON-LD</span>
+                    <abbr title="JSON-LD" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON-LD</abbr>
+                  </a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if links_found.json == 0 %}
+                <li>
+                  <a id="json-format-url" href="?f=json" class="btn btn-xs btn-default">
+                    <span class="hidden-xs">JSON</span>
+                    <abbr title="JSON" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON</abbr>
+                  </a>
+                </li>
+                {% endif %}
+                {% if links_found.jsonld == 0 %}
+                <li>
+                  <a id="jsonld-format-url" href="?f=jsonld" class="btn btn-xs btn-default">
+                    <span class="hidden-xs">JSON-LD</span>
+                    <abbr title="JSON-LD" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">JSON-LD</abbr>
+                  </a>
+                </li>
+                {% endif %}
+                {% block extralang %}
+                {% endblock %}
+
+                <!-- language toggle -->
+                {% for langcode in config['server']['languages'] %}
+                {% if (locale|upper)[:2] != (langcode|upper)[:2] %}
+                <li>
+                  <a class="lang-toggle" href="?lang={{ (langcode|lower)[:2] }}" hreflang="{{ langcode }}">
+                    {% if (langcode|upper)[:2] == 'FR' %}
+                      <span class="hidden-xs">Français</span>
+                      <abbr title="Français" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">FR</abbr>
+                    {% else %}
+                      <span class="hidden-xs">English</span>
+                      <abbr title="English" class="visible-xs h3 mrgn-tp-sm mrgn-bttm-0 text-uppercase">EN</abbr>
+                    {% endif %}
+                  </a>
+                </li>
+                {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <hr class="header-hr-bottom">
+
+      <div class="announcement-banner" v-if="displayAnnouncement && announcementClosed != 'true'">
+        <div class="container announcement-banner-container">
+          <div class="announcement-text">{% trans %}announcement_text{% endtrans %}</div>
+          <button class="announcement-close-button" @click="closeAnnouncement()">&times;</button>
+        </div>
+      </div>
+
+      <nav id="wb-bc" property="breadcrumb">
+        <h2>{% trans %}You are here:{% endtrans %}</h2>
+        <div class="container">
+          <ol class="breadcrumb">
+            {% block crumbs %}
+            <li><a href="{{ config['server']['url'] }}?lang={{ (locale|lower)[:2] }}">{% trans %}Home{% endtrans %}</a></li>
+            {% endblock %}
+          </ol>
+        </div>
+      </nav>
+    </header>
+    <main property="mainContentOfPage" class="container" typeof="WebPageElement">
+      {% block body %}
+      {% endblock %}
+    </main>
+    <footer id="wb-info">
+      <h2 class="wb-inv">{% trans %}About this site{% endtrans %}</h2>
+      <div class="geoca-main-footer"></div>
+
+      <div class="gc-sub-footer">
+        <div class="container footer-container">
+          <div class="page-credits-container">
+            <h3>
+              {% trans %}Contact Us{% endtrans %}
+            </h3>
+            <p class="footer-p">
+              {% trans %}Canada Centre for Mapping and Earth Observation{% endtrans %}<br>
+              {% trans %}Natural Resources Canada{% endtrans %}<br>
+              {% trans %}Government of Canada{% endtrans %}<br>
+              <a href="mailto:geo@nrcan-rncan.gc.ca">geo@nrcan-rncan.gc.ca</a>
+            </p>
+          </div>
+          <div class="wtrmrk footer-right">
+            <img class="footer-logo" src="https://wet-boew.github.io/themes-dist/GCWeb/GCWeb/assets/wmms-blk.svg" alt="{% trans %}Symbol of the Government of Canada{% endtrans %}" />
+            <div class="page-credits">
+              <p class="footer-p">
+                {% trans %}Powered by{% endtrans %} <a title="pygeoapi" href="https://pygeoapi.io"><img src="{{ config['server']['url'] }}/static/img/pygeoapi.png" alt="{% trans %}pygeoapi logo{% endtrans %}" style="height:24px;vertical-align: middle;"/></a>
+                {{ version }} | <a href="https://github.com/Canadian-Geospatial-Platform/cgp_pygeoapi" target="_blank">cgp-pygeoapi</a>
+              </p>
+              <p class="footer-p">  
+                {% trans %}Canadian Geospatial Platform (CGP){% endtrans %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+    {% block extrafoot %}
+    {% endblock %}
+    <script>
+      // Requests and embeds JSON-LD representation of current page
+      var xhr = new XMLHttpRequest();
+      var lang = "{{ (locale|lower)[:2] }}" ? "{{ (locale|lower)[:2] }}" : "{{ config['server']['languages'][0][:2] }}"
+      var path = window.location.protocol + "//" + window.location.host + window.location.pathname + "?f=jsonld&lang=" + lang;
+      if (window.location.pathname.match(/\/items(#)*/gi)) { // reduce load on /items page
+        path += '&limit=10';
+      }
+      xhr.open('GET', path);
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          var head = document.getElementsByTagName('head')[0];
+          var jsonld_datablock = document.createElement('script');
+          jsonld_datablock.type = "application/ld+json";
+          // remove full context path, because search engines don't expect it here, pyld requires it.
+          jsonld_datablock.textContent = xhr.responseText.replace('docs/jsonldcontext.jsonld','');
+          head.appendChild(jsonld_datablock);
+        }
+      };
+      xhr.send();
+    </script>
+    <script type="module">
+      import { createApp, ref } from 'https://cdnjs.cloudflare.com/ajax/libs/vue/3.0.7/vue.esm-browser.prod.js'
+
+      const app = createApp({
+        setup() {
+
+          /*******************************************************
+           *                                                     *
+           *    SET TO false TO PERMANENTLY HIDE ANNOUNCEMENT    *
+           *                                                     *
+           *    To set the announcement text, edit the msgstr    *
+           *    for the announcement_text key in each .po file   *
+           *    then recompile the translations using the        *
+           *    usual pybable commands                           *
+           *                                                     *
+           *******************************************************/
+          let displayAnnouncement = true;
+
+          let announcementClosed = ref(sessionStorage.getItem("closeButtonClicked"));
+
+          if(announcementClosed.value == null) {
+            sessionStorage.setItem("closeButtonClicked", "false");
+            announcementClosed.value = sessionStorage.getItem("closeButtonClicked");
+          }
+
+          const closeAnnouncement = function() {
+            let closed = sessionStorage.getItem("closeButtonClicked");
+            if (closed != "true") {
+              sessionStorage.setItem("closeButtonClicked", "true");
+              announcementClosed.value = sessionStorage.getItem("closeButtonClicked");
+            }
+          }
+
+          return {
+            displayAnnouncement, announcementClosed, closeAnnouncement
+          }
+        }
+      }).mount('#header')
+    </script>
+  </body>
+</html>

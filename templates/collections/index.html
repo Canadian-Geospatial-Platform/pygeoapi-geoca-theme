@@ -1,0 +1,112 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {% trans %}Collections{% endtrans %} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="./collections?lang={{ (locale|lower)[:2] }}">{% trans %}Collections{% endtrans %}</a></li>
+{% endblock %}
+{% block body %}
+    <section id="collections">
+      <h1>{% trans %}Collections in this service{% endtrans %}</h1>
+
+      <div class="form-inline" aria-controls="collections-table">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="{% trans %}Filter{% endtrans %}"
+          v-model="searchText">
+      </div>
+
+      <table id="collections-table" class="table table-striped">
+        <thead>
+        <tr>
+          <th v-for="(th, index) in tableFields"
+            :class="[th.colClass, 'sortable']"
+            @click="sortDir(th.key)"><span v-text="th.text">{% trans %}Name{% endtrans %}</span>
+            <span
+              v-show="currentSort === th.key"
+              :class="sortIconClass"
+              class="glyphicon"></span>
+          </th>
+          <th v-if="noJs">{% trans %}Type{% endtrans %}</th>
+          <th v-if="noJs">{% trans %}Description{% endtrans %}</th>
+        </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(collection, index) in collections">
+            <td data-label="name">
+              <a :title="truncateStripTags(collection.title)"
+                :href="'{{ config['server']['url'] }}/collections/' + collection.id + '?lang={{ (locale|lower)[:2] }}'">
+                <span v-html="truncateStripTags(collection.title)"></span></a>
+            </td>
+            <td data-label="type" v-text="collection.itemType"></td>
+            <td data-label="description" v-text="truncateStripTags(collection.description)"></td>
+          </tr>
+          {% for col in data['collections']  %}
+          <tr v-if="noJs">
+            <td data-label="name">
+              <a  title="{{ col['title'] | striptags | truncate }}"
+                href="{{ config['server']['url'] }}/collections/{{ col.id }}">
+                <span>{{ col['title'] | striptags | truncate }}</span></a>
+            </td>
+            <td data-label="type">{{ col["itemType"] }}</td>
+            <td data-label="description">
+              {{ col['description'] | striptags | truncate }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <script>
+      // Jinja rendered JSON
+      const JSON_DATA = {{ data | to_json | safe }};
+    </script>
+    <script type="module">
+      import useCollections from '{{ config['server']['url'] }}/static/js/composables/useCollections.js?v={{ version }}'
+      import useTableFilter from '{{ config['server']['url'] }}/static/js/composables/useTableFilter.js?v={{ version }}'
+      import { createApp, ref, computed } from 'https://cdnjs.cloudflare.com/ajax/libs/vue/3.0.7/vue.esm-browser.prod.js'
+
+      const app = createApp({
+        delimiters: ['[%', '%]'],
+        setup() {
+          const noJs = ref(false) // progressive enhancement
+          const { collections } = useCollections()
+
+          // table columns
+          const tableFields = ref([
+            {
+              key: 'title',
+              text: '{% trans %}Name{% endtrans %}',
+              colClass: 'col-sm-3'
+            }, {
+              key: 'itemType',
+              text: '{% trans %}Type{% endtrans %}',
+              colClass: 'col-sm-1'
+            }, {
+              key: 'description',
+              text: '{% trans %}Description{% endtrans %}',
+              colClass: 'col-sm-7'
+            }
+          ])
+          const keyColumns = computed(() => {
+            return tableFields.value.map(field => field.key)
+          })
+
+          // filtering of table results
+          const { filteredRows, searchText, searchTextLowered,
+            currentSort, sortDir, sortIconClass, truncateStripTags } = useTableFilter(collections, keyColumns, 'title')
+
+          return {
+            collections: filteredRows, // don't care about unfiltered collections
+            tableFields, truncateStripTags,
+            searchText, searchTextLowered,
+            sortIconClass, sortDir, currentSort,
+          }
+        }
+      }).mount('#collections')
+    </script>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {% trans path=data['path'] %}stac/{{ path }}{% endtrans %} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="{{ config['server']['url'] }}/stac">{% trans %}SpatioTemporal Asset Catalog{% endtrans %}</a></li>
+{% for link in get_breadcrumbs(data['path']) %}
+<li><a class="crumbs-path" href="{{config['server']['url'] }}/stac/{{ link['href'] }}?lang={{ (locale|lower)[:2] }}">{{ link['title'] }}</a></li>
+{% endfor %}
+{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block body %}
+    <section id="item">
+      <div class="row">
+        <div class="col-sm">
+          <h2>{% trans id=data['id'] %}Item {{ id }}{% endtrans %}</h2>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 col-sm-12">
+          <div class="row">
+            <div class="col-sm-12">
+              <div id="items-map"></div>
+              <div id="assets">
+                <h4>{% trans %}Assets{% endtrans %}</h4>
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>{% trans %}URL{% endtrans %}</th>
+                      <th>{% trans %}Last modified{% endtrans %}</th>
+                      <th>{% trans %}Size{% endtrans %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for k, link in data['assets'].items() %}
+                    <tr>
+                      <td data-label="name">
+                        <a title="{{ link['href'] }}" href="{{ link['href'] }}" class="text-break">
+                        <span>{{ link['href'] | get_path_basename }}</span></a>
+                      </td>
+                      <td data-label="created">{{ link['created'] }}</td>
+                      <td data-label="size">{{ link['file:size'] | human_size }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-sm-12">
+            <table class="table table-striped">
+              <thead>
+              <tr>
+                <th>{% trans %}Property{% endtrans %}</th>
+                <th>{% trans %}Value{% endtrans %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>id</td>
+                <td>{{ data.id }}</td>
+              </tr>
+              {% for k, v in data['properties'].items() %}
+              <tr>
+                <td>{{ k }}</td>
+                {% if k == 'links' %}
+                <td>
+                    <ul>
+                        {% for l in v %}
+                        <li><a href="{{ l['href'] }}">{{ l['title'] }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                {% else %}
+                  <td>{{ v }}</td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+            </table>
+        </div>
+      </div>
+    </section>
+{% endblock %}
+
+{% block extrafoot %}
+  <script>
+    // Jinja rendered JSON
+    const JSON_DATA = {{ data | to_json | safe }};
+    
+    let locale = '{{ (locale|lower)[:2] }}'
+    let labelsURL = locale === 'en' ?
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_TXT_3857/MapServer/tile/{z}/{y}/{x}' :
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT_TXT_3857/MapServer/tile/{z}/{y}/{x}'
+    let attribution = locale === 'en' ?
+      'Powered by <a href="https://geo.ca/">Geo.ca</a> | © His Majesty the King in Right of Canada, as represented by the Minister of Natural Resources Canada' :
+      'Propulsé par <a href="https://geo.ca/">Geo.ca</a> | © Sa Majesté le Roi du chef du Canada, représenté par le ministre de Ressources naturelles Canada'
+    let map = L.map('items-map').setView([{{ 45 }}, {{ -75 }}], 10)
+    map.attributionControl.setPrefix(false)
+
+    // Base layer
+    L.tileLayer(
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_CBCT_GEOM_3857/MapServer/tile/{z}/{y}/{x}',
+      {attribution: attribution}
+    ).addTo(map)
+
+    // Labels
+    L.tileLayer(labelsURL).addTo(map)
+    
+    // null geometry/bbox check
+    if (JSON_DATA.bbox !== null) {
+      var bbox_layer = L.polygon([
+          [JSON_DATA.bbox[1], JSON_DATA.bbox[0] ],
+          [JSON_DATA.bbox[3], JSON_DATA.bbox[0] ],
+          [JSON_DATA.bbox[3], JSON_DATA.bbox[2] ],
+          [JSON_DATA.bbox[1], JSON_DATA.bbox[2] ],
+      ]);
+      map.addLayer(bbox_layer);
+      map.fitBounds(bbox_layer.getBounds(), {maxZoom: 5});
+    } else {
+      const warnAlert = `<div class="alert alert-warning mrgn-tp-md">{% trans %}Map extent preview not available{% endtrans %}</div>`;
+      document.getElementById('items-map').insertAdjacentHTML('afterend', warnAlert);
+    }
+  </script>
+{% endblock %}

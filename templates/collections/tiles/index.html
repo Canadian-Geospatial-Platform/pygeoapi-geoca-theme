@@ -1,0 +1,149 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {{ data['title'] }} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../../collections?lang={{ (locale|lower)[:2] }}">{% trans %}Collections{% endtrans %}</a></li>
+<li><a href="../{{ data['id'] }}?lang={{ (locale|lower)[:2] }}">{{ data['title'] }}</a></li>
+<li><a href="../{{ data['id'] }}/tiles?lang={{ (locale|lower)[:2] }}">{% trans %}Tiles{% endtrans %}</a></li>
+{% endblock %}
+{% block extrahead %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.bundled.js"></script>
+    <style>
+      .leaflet-popup-content {
+          width: 200px;
+          height: 100px;
+      }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <section id="collection">
+      <h1>{{ data['title'] }}</h1>
+      <p>{{ data['description'] }}</p>
+      <ul>
+        {% for kw in data['keywords'] %}
+          <li><span class="label label-info">{{ kw }}</span></li>
+        {% endfor %}
+      </ul>
+      <h3>{% trans %}Tiles{% endtrans %}</h3>
+      <div class="row">
+        <div class="col-md-2 col-sm-12">{% trans %}Tile matrix set{% endtrans %}</div>
+        <div class="col-md-8">
+          <select id="tilingScheme">
+            {% for tileset in data['tilesets'] %}
+            <option value="{{ tileset }}">{{ tileset }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <br/>
+      <div class="row">
+        <div class="col-md-2 col-sm-12">{% trans %}Metadata{% endtrans %}</div>
+        <div class="col-md-8"><a id="tilejson" href="" target="_blank">{% trans data_format=data['format'] %}Tiles metadata in {{ data_format }} format{% endtrans %}</a></div>
+      </div>
+      <script>
+        var select = document.getElementById('tilingScheme');
+        var tileset = select.value;
+        let params = (new URL(document.location)).searchParams;
+        var scheme = params.get('scheme');
+        if (scheme) {
+            select.value = scheme;
+        }
+        select.addEventListener('change', ev => {
+          var scheme = ev.target.value;
+          document.location.search = `scheme=${scheme}`;
+        });
+        document.getElementById("tilejson").href = "{{ config['server']['url'] }}/collections/{{ data['id'] }}/tiles/" + tileset + "/metadata?lang={{ (locale|lower)[:2] }}";
+      </script>
+      <br/>
+      <div class="row">
+        <div class="col-md-2 col-sm-12">{% trans %}Map{% endtrans %}</div>
+        <div class="col-md-8">
+          <div id="items-map"></div>
+        </div>
+      </div>
+    </section>
+{% endblock %}
+
+{% block extrafoot %}
+  <script>
+    let locale = '{{ (locale|lower)[:2] }}'
+    let labelsURL = locale === 'en' ?
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_TXT_3857/MapServer/tile/{z}/{y}/{x}' :
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT_TXT_3857/MapServer/tile/{z}/{y}/{x}'
+    let attribution = locale === 'en' ?
+      'Powered by <a href="https://geo.ca/">Geo.ca</a> | © His Majesty the King in Right of Canada, as represented by the Minister of Natural Resources Canada' :
+      'Propulsé par <a href="https://geo.ca/">Geo.ca</a> | © Sa Majesté le Roi du chef du Canada, représenté par le ministre de Ressources naturelles Canada'
+    let map = L.map('items-map').setView([{{ 45 }}, {{ -75 }}], 10)
+    map.attributionControl.setPrefix(false)
+
+    // Base layer
+    L.tileLayer(
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_CBCT_GEOM_3857/MapServer/tile/{z}/{y}/{x}',
+      {attribution: attribution}
+    ).addTo(map)
+
+    // Labels
+    L.tileLayer(labelsURL).addTo(map)
+
+    {% for link in data["links"] %}
+      {% if link["rel"] == "item" %}
+        var tilesUrl = '{{ link["href"] }}';
+      {% endif %}
+    {% endfor %}
+
+    var url = tilesUrl.replace('{tileMatrixSetId}', tileset).replace("tileMatrix", "z").replace("tileRow", "x").replace("tileCol", "y");
+
+    var VectorTileOptions = {
+        interactive: true,
+        rendererFactory: L.canvas.tile,
+        maxZoom: {{ data['maxzoom'] }},
+        indexMaxZoom: 5,
+        getFeatureId: function(feat) {
+              return feat.properties["id"]
+        }
+    };
+
+    var highlight;
+    var clearHighlight = function() {
+      if (highlight) {
+        tilesPbfLayer.resetFeatureStyle(highlight);
+      }
+      highlight = null;
+    };
+
+    var tilesPbfLayer = L.vectorGrid.protobuf(url, VectorTileOptions)
+      .on('click', function(e) { // The .on method attaches an event handler
+          L.popup()
+            .setContent("<b>{% trans %}Name{% endtrans %}</b>: " + e.layer.properties.name +
+                        "<br><b>{% trans %}Class{% endtrans %}</b>: " + e.layer.properties.featureclass)
+            .setLatLng(e.latlng)
+            .openOn(map);
+
+          clearHighlight();
+          highlight = e.layer.properties.id;
+          tilesPbfLayer.setFeatureStyle(highlight, {
+            weight: 2,
+            color: 'red',
+            opacity: 1,
+            fillColor: 'red',
+            fill: false,
+            radius: 6,
+            fillOpacity: 1
+          })
+
+          L.DomEvent.stop(e);
+      })
+      .addTo(map);
+
+    map.on('click', clearHighlight);
+    bounds = L.latLngBounds([[{{ data['bounds'][0] }},{{data['bounds'][1]}}],[{{ data['bounds'][2] }},{{data['bounds'][3]}}]])
+    map.fitBounds(bounds, maxZoom={{ data['maxzoom']}});
+
+  </script>
+{% endblock %}

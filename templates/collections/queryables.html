@@ -1,0 +1,40 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {{ data['title'] }} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../../collections?lang={{ (locale|lower)[:2] }}">{% trans %}Collections{% endtrans %}</a></li>
+<li><a href="{{ data['$id']|replace('/queryables', '') }}?lang={{ (locale|lower)[:2] }}">{{ data['title'] }}</a></li>
+<li><a href="./{{ data['id'] }}queryables?lang={{ (locale|lower)[:2] }}">{% trans %}Queryables{% endtrans %}</a></li>
+{% endblock %}
+{% block body %}
+    <section id="collection">
+      <h1>{{ data['title'] }}</h1>
+      <p>{{ data['description'] }}</p>
+      <ul>
+        {% for kw in data['keywords'] %}
+          <li><span class="label label-info">{{ kw }}</span></li>
+        {% endfor %}
+      </ul>
+      <h3>{% trans %}Queryables{% endtrans %}</h3>
+      <ul>
+        {% for qname, qinfo in data['properties'].items() %}
+          {% if qname == 'geometry' %}
+          <li><a href="{{ qinfo['$ref'] }}">{{ qname }} </a></li>
+          {% else %}
+          <li>{{ qname }} (<code>{{ qinfo['type'] }}</code>)
+          {% if 'enum' in qinfo %}
+            <ul>
+            {% for value in qinfo['enum'] %}
+              <li><i>{{ value }}</i></li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+          </li>
+          {% endif %}
+        {% endfor %}
+        </ul>
+    </section>
+{% endblock %}

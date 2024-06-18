@@ -1,0 +1,95 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {{ data['title'] }} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../processes?lang={{ (locale|lower)[:2] }}">{% trans %}Processes{% endtrans %}</a></li>
+<li><a href="./{{ data['id'] }}?lang={{ (locale|lower)[:2] }}">{{ data['title'] }}</a></li>
+{% endblock %}
+{% block body %}
+    <section id="process">
+      <h2>{{ data['title'] }}</h2>
+      <div>{{data.description}}</div>
+      <ul class="list-inline">
+          {% for kw in data['keywords'] %}
+            <li><span class="label label-info">{{ kw }}</span></li>
+          {% endfor %}
+      </ul>
+      <div class="row">
+        <div class="col-sm-12 col-md-12">
+          <table class="table table-striped table-hover">
+            <caption>{% trans %}Inputs{% endtrans %}</caption>
+            <thead>
+            <tr>
+              <th>{% trans %}ID{% endtrans %}</th>
+              <th>{% trans %}Title{% endtrans %}</th>
+              <th>{% trans %}Data type{% endtrans %}</th>
+              <th>{% trans %}Description{% endtrans %}</th>
+            </tr>
+            </thead>
+            <tbody>
+              {% for key, value in data['inputs'].items() %}
+              <tr>
+                <td>
+                  {{ key }}
+                </td>
+                <td>
+                  {{ value.title|striptags|truncate }}
+                </td>
+                <td>
+                  {{ value.schema.type }}
+                </td>
+                <td>
+                  {{ value.description }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="col-sm-12 col-md-12">
+          <table class="table table-striped table-hover">
+            <caption>Outputs</caption>
+            <thead>
+            <tr>
+              <th>{% trans %}ID{% endtrans %}</th>
+              <th>{% trans %}Title{% endtrans %}</th>
+              <th>{% trans %}Description{% endtrans %}</th>
+            </tr>
+            </thead>
+            <tbody>
+              {% for key, value in data['outputs'].items() %}
+              <tr>
+                <td>{{ key }}</td>
+                <td>{{ value.title }}</td>
+                <td>
+                  {{ value.description | striptags | truncate }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <h2>{% trans %}Execution modes{% endtrans %}</h2>
+          <ul>
+            {% if 'sync-execute' in data.jobControlOptions %}<li>{% trans %}Synchronous{% endtrans %}</li>{% endif %}
+            {% if 'async-execute' in data.jobControlOptions %}<li>{% trans %}Asynchronous{% endtrans %}</li>{% endif %}
+          </ul>
+          <h2>{% trans %}Jobs{% endtrans %}</h2>
+          <a title="{% trans %}Browse jobs{% endtrans %}" href="{{config.server.url}}/jobs">{% trans %}Browse jobs{% endtrans %}</a>
+          <h2>{% trans %}Links{% endtrans %}</h2>
+          <ul>
+            {% for link in data['links'] %}
+                <li>
+                  <a title="{{link.title}}" type="{{link.type}}" rel="{{link.rel}}" href="{{link.href}}" hreflang="{{link.hreflang}}">
+                    {% trans title=link['title'], type=link['type'] %}{{ title }} ({{ type }}){% endtrans %}
+                  </a>
+                </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+{% endblock %}

@@ -1,0 +1,133 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {{ data['title'] }} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../collections?lang={{ (locale|lower)[:2] }}">{% trans %}Collections{% endtrans %}</a></li>
+<li><a href="./{{ data['id'] }}?lang={{ (locale|lower)[:2] }}">{{ data['title'] }}</a></li>
+{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block body %}
+    <section id="collection">
+      <div class="row">
+        <div class="col-sm-12">
+          <h1>{{ data['title'] }}</h1>
+          <p>{{ data['description'] }}</p>
+          <ul class="list-inline">
+            {% for kw in data['keywords'] %}
+              <li><span class="label label-info">{{ kw }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <div id="collection-map"></div>
+        </div>
+      </div>
+      {% if data['itemType'] == 'feature' or data['itemType'] == 'record' %}
+      <h3>{% trans %}Browse{% endtrans %}</h3>
+      <ul>
+        <li>
+          <div>
+            <a title="Browse Items" href="{{ config['server']['url'] }}/collections/{{ data['id'] }}/items?lang={{ (locale|lower)[:2] }}">
+              {% trans data_title=data['title'] %}Browse through the items of "{{ data_title }}"{% endtrans %}</a></div>
+        </li>
+      </ul>
+      <h3>{% trans %}Queryables{% endtrans %}</h3>
+      <ul>
+        <li>
+          <div>
+            <a title="{% trans %}Display queryables{% endtrans %}" href="{{ config['server']['url'] }}/collections/{{ data['id'] }}/queryables?lang={{ (locale|lower)[:2] }}">
+              {% trans data_title=data['title'] %}Display queryables of "{{ data_title }}"{% endtrans %}</a></div>
+        </li>
+      </ul>
+      {% for provider in config['resources'][data['id']]['providers'] %}
+        {% if 'tile' in provider['type'] %}
+      <h3>Tiles</h3>
+      <ul>
+        <li>
+          <div>
+            <a title="Display tiles" href="{{ config['server']['url'] }}/collections/{{ data['id'] }}/tiles?lang={{ (locale|lower)[:2] }}">{% trans title=data['title'] %}Display tiles of "{{ title }}"{% endtrans %}</a>
+          </div>
+        </li>
+      </ul>
+        {% endif %}
+      {% endfor %}
+      {% endif %}
+      <h3>{% trans %}Output Formats{% endtrans %}</h3>
+      <ul>
+      {% for link in data['links'] %}
+        {# oapiFeatures datasets; shows the primary 'f=[format]' #}
+        {% if link['rel'] == 'items' %}
+          <li>{{ link['href'].split('?')[1].split('=')[1] }} ({{ link['type'] }})</li>
+          {% if link['type'] == 'application/geo+json' %}
+          <li>CSV</li>{# generally supported with pygeoapi feature collections #}
+          {% endif %}
+        {% endif %}
+        {# oapiCoverage datasets; shows the primary 'f=[format]' #}
+        {% if link['rel'] == 'http://www.opengis.net/def/rel/ogc/1.0/coverage' %}
+          <li>{{ link['href'].split('?')[1].split('=')[1] }} ({{ link['type'] }})</li>
+        {% endif %}
+      {% endfor %}
+      </ul>
+      <h3>{% trans %}Links{% endtrans %}</h3>
+      <ul>
+      {% for link in data['links'] %}
+        {% if '?' in link['href'] %}
+          <li>
+            <a title="{{ link['rel'] }}" href="{{ link['href'] }}&lang={{ (locale|lower)[:2] }}">
+            <span>{{ link['title'] }}</span> (<span>{{ link['type'] }}</span>)
+            </a>
+          </li>
+        {% else %}
+          <li>
+            <a title="{{ link['rel'] }}" href="{{ link['href'] }}?lang={{ (locale|lower)[:2] }}">
+            <span>{{ link['title'] }}</span> (<span>{{ link['type'] }}</span>)
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      </ul>
+    </section>
+{% endblock %}
+
+{% block extrafoot %}
+  <script>
+    let locale = '{{ (locale|lower)[:2] }}'
+    let labelsURL = locale === 'en' ?
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_TXT_3857/MapServer/tile/{z}/{y}/{x}' :
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBCT_TXT_3857/MapServer/tile/{z}/{y}/{x}'
+    let attribution = locale === 'en' ?
+      'Powered by <a href="https://geo.ca/">Geo.ca</a> | © His Majesty the King in Right of Canada, as represented by the Minister of Natural Resources Canada' :
+      'Propulsé par <a href="https://geo.ca/">Geo.ca</a> | © Sa Majesté le Roi du chef du Canada, représenté par le ministre de Ressources naturelles Canada'
+    let map = L.map('collection-map').setView([{{ 45 }}, {{ -75 }}], 10)
+    map.attributionControl.setPrefix(false)
+
+    // Base layer
+    L.tileLayer(
+      'https://maps-cartes.services.geo.ca/server2_serveur2/rest/services/BaseMaps/CBMT_CBCT_GEOM_3857/MapServer/tile/{z}/{y}/{x}',
+      {attribution: attribution}
+    ).addTo(map)
+
+    // Labels
+    L.tileLayer(labelsURL).addTo(map)
+
+    let bbox_layer = L.polygon([
+      ['{{ data['extent']['spatial']['bbox'][0][1] }}', '{{ data['extent']['spatial']['bbox'][0][0] }}'],
+      ['{{ data['extent']['spatial']['bbox'][0][3] }}', '{{ data['extent']['spatial']['bbox'][0][0] }}'],
+      ['{{ data['extent']['spatial']['bbox'][0][3] }}', '{{ data['extent']['spatial']['bbox'][0][2] }}'],
+      ['{{ data['extent']['spatial']['bbox'][0][1] }}', '{{ data['extent']['spatial']['bbox'][0][2] }}']
+    ])
+
+    map.addLayer(bbox_layer)
+    map.fitBounds(bbox_layer.getBounds(), {maxZoom: 10})
+  </script>
+{% endblock %}

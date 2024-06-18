@@ -1,0 +1,14 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {% trans %}Exception{% endtrans %} {% endblock %}
+{% block crumbs %}{{ super() }}
+{% endblock %}
+{% block body %}
+    <section id="exception">
+      <h2>{% trans %}Exception{% endtrans %}</h2>
+      <p>{{ data['description'] }}</p>
+    </section>
+{% endblock %}

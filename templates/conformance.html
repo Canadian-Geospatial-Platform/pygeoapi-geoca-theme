@@ -1,0 +1,19 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {% trans %}Conformance{% endtrans %} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="./conformance?lang={{ (locale|lower)[:2] }}">{% trans %}Conformance{% endtrans %}</a></li>
+{% endblock %}
+{% block body %}
+    <section id="conformance">
+      <h2>{% trans %}Conformance{% endtrans %}</h2>
+      <ul>
+      {% for link in data['conformsTo'] %}
+          <li><a title="{{ link }}" href="{{ link }}">{{ link }}</a></li>
+      {% endfor %}
+      </ul>
+    </section>
+{% endblock %}

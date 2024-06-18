@@ -1,0 +1,23 @@
+{% if config['server']['templates']['base'] %}
+  {% extends config['server']['templates']['base'] %}
+{% else %}
+  {% extends "_base.html" %}
+{% endif %}
+{% block title %}{{ super() }} {{ data['title'] }} {% endblock %}
+{% block crumbs %}{{ super() }}
+<li><a href="../../?lang={{ (locale|lower)[:2] }}">{% trans %}Collections{% endtrans %}</a></li>
+<li><a href="../../../collections/{{ data['id'] }}?lang={{ (locale|lower)[:2] }}">{{ data['title'] }}</a></li>
+{% endblock %}
+{% block body %}
+    <section id="collection">
+      <h1>{{ data['title'] }}</h1>
+      <p>{{ data['description'] }}</p>
+      <h3>{% trans %}Coverage range type{% endtrans %}</h3>
+      <h4>{% trans %}Fields{% endtrans %}</h4>
+      <ul>
+	{% for field in data['field'] %}
+	<li>{% trans id=field['id'], name=field['name'], definition=field['definition'] %}{{ id }}: {{ name }} ({{ definition }}){% endtrans %}</li>
+	{% endfor %}
+      </ul>
+    </section>
+{% endblock %}
