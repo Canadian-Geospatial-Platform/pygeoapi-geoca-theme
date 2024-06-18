@@ -1,17 +1,20 @@
 # pygeoapi-geoca-theme
 A skin for [pygeoapi](http://pygeoapi.io), based on geo.ca theme, which is in turn using the Canada.ca Web Experience Toolkit (WET)
 
-![Snapshot of homepage](snip.png)
+# Homepage
+![Snapshot of homepage](snip.PNG)
 
-![Snapshot of collections](snip2.png)
+# Collections
+![Snapshot of collections](snip2.PNG)
 
-![Snapshot of items](snip3.png)
+# Items
+![Snapshot of items](snip3.PNG)
 
 # Installation
 
 Clone this repository in a folder.
 Open pygeoapi config file and uncomment templates section.
-Point paths to relevant folders
+Point paths to relevant folders.
 
 ```YML
     templates:
