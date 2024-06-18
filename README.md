@@ -1,11 +1,11 @@
 # pygeoapi-geoca-theme
 A skin for [pygeoapi](http://pygeoapi.io), based on geo.ca theme, which is in turn using the Canada.ca Web Experience Toolkit (WET)
 
-![Snapshot of homepage](snap.png)
+![Snapshot of homepage](snip.png)
 
-![Snapshot of collections](snap2.png)
+![Snapshot of collections](snip2.png)
 
-![Snapshot of items](snap3.png)
+![Snapshot of items](snip3.png)
 
 # Installation
 
